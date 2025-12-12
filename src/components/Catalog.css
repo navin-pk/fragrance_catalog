@@ -309,6 +309,152 @@
   font-size: 1rem;
   border-radius: 4px;
 }
+/* Price editing */
+.edit-price-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.price-input {
+  width: 100px;
+  padding: 4px 8px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  font-size: 0.95rem;
+}
+
+.edit-price-btn {
+  margin-left: 10px;
+  padding: 4px 12px;
+  background: black;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.save-price-btn {
+  padding: 4px 12px;
+  background: black;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.save-price-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.cancel-price-btn {
+  padding: 4px 12px;
+  background: black;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.prices-section ul {
+  list-style: none;
+  padding: 0;
+}
+
+.prices-section li {
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.prices-section li:last-child {
+  border-bottom: none;
+}
+.review-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.edit-review-btn {
+  padding: 4px 12px;
+  background: black;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.review-edit-form {
+  padding: 12px;
+}
+
+.review-edit-form .form-group {
+  margin-bottom: 12px;
+}
+
+.review-edit-form label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.review-edit-form .rating-slider {
+  width: 100%;
+  cursor: pointer;
+}
+
+.review-edit-form textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 1rem;
+  resize: vertical;
+}
+
+.review-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.save-btn {
+  padding: 6px 16px;
+  background: black;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.save-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.cancel-edit-btn {
+  padding: 6px 16px;
+  background: black;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.cancel-edit-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
 
 .cancel-btn {
   padding: 10px 20px;

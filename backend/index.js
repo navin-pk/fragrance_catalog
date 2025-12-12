@@ -16,10 +16,10 @@ const JWT_SECRET = process.env.JWT_SECRET
 // auth
 const authenticateToken = (req, res, next) => {
   const token = req.headers['authorization']?.split(' ')[1]
-  if (!token) return res.status(401).json({ error: 'Access denied' })
+  if (!token) return res.json({ error: 'Access denied' })
   
   jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) return res.status(403).json({ error: 'Invalid token' })
+    if (err) return res.json({ error: 'Invalid token' })
     req.user = user
     next()
   })
@@ -208,7 +208,7 @@ app.get('/api/fragrances/:id', async (req, res) => {
 
     // reviews
     const reviewsQ = await pool.query(
-      `SELECT review_id AS id, rating, review_text AS text, reviewer_name, created_at 
+      `SELECT review_id AS id, user_id, rating, review_text AS text, reviewer_name, created_at 
       FROM reviews 
       WHERE frag_id = $1 
       ORDER BY created_at DESC`,
@@ -246,6 +246,41 @@ app.post('/api/reviews', authenticateToken, async (req, res) => {
     res.json(rows[0])
   } 
   // error
+  catch (err) {
+    console.error(err)
+    res.json({ error: 'server error' })
+  }
+})
+
+// edit review
+app.put('/api/reviews/:id', authenticateToken, async (req, res) => {
+  try {
+    const reviewId = req.params.id
+    const { rating, text } = req.body
+    const userId = req.user.userId
+    
+    // verify user owns this review
+    const { rows: checkRows } = await pool.query(
+      'SELECT user_id FROM reviews WHERE review_id = $1',
+      [reviewId]
+    )
+    
+    if (checkRows.length === 0) {
+      return res.json({ error: 'Review not found' })
+    }
+    
+    if (checkRows[0].user_id !== userId) {
+      return res.json({ error: 'Not authorized to edit this review' })
+    }
+    
+    // update the review
+    const { rows } = await pool.query(
+      'UPDATE reviews SET rating = $1, review_text = $2 WHERE review_id = $3 RETURNING *',
+      [rating, text || null, reviewId]
+    )
+    
+    res.json(rows[0])
+  } 
   catch (err) {
     console.error(err)
     res.json({ error: 'server error' })
@@ -345,6 +380,33 @@ app.delete('/api/fragrances/:id', authenticateToken, async (req, res) => {
   catch (err) {
     console.error(err)
     res.json({ error: 'Failed to delete fragrance' })
+  }
+})
+
+// update price
+app.put('/api/prices/:id', authenticateToken, async (req, res) => {
+  try {
+    const priceId = req.params.id
+    const { amount } = req.body
+    
+    if (!amount || amount <= 0) {
+      return res.json({ error: 'Valid price amount is required' })
+    }
+    
+    const { rows } = await pool.query(
+      'UPDATE prices SET amount = $1 WHERE price_id = $2 RETURNING *',
+      [amount, priceId]
+    )
+    
+    if (rows.length === 0) {
+      return res.json({ error: 'Price not found' })
+    }
+    
+    res.json(rows[0])
+  } 
+  catch (err) {
+    console.error(err)
+    res.json({ error: 'Failed to update price' })
   }
 })
 

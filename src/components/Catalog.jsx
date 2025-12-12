@@ -20,7 +20,8 @@ export default function Catalog({ user, token }){
     try {
       const res = await API.get('/api/notes')
       setAllNotes(res.data || [])
-    } catch (err) {
+    } 
+    catch (err) {
       console.error('Error loading notes:', err)
     }
   }
@@ -46,6 +47,7 @@ export default function Catalog({ user, token }){
     } 
   }
 
+  // add or remove note from filter
   function toggleNote(noteName){
     setSelectedNotes(prev => 
       prev.includes(noteName) 
@@ -64,6 +66,7 @@ export default function Catalog({ user, token }){
     }
   }
 
+  // handle adding new fragrance
   async function handleAddFragrance(formData){
     try {
       setError(null)
@@ -76,7 +79,6 @@ export default function Catalog({ user, token }){
       setShowAddForm(false)
       setSearch('')
       setSelectedNotes([])
-
       await fetchFragrances()
     } 
     catch (err) {
@@ -84,6 +86,7 @@ export default function Catalog({ user, token }){
     }
   }
 
+  // handle deleting fragrance
   async function handleDeleteFragrance(fragId){
     if (!window.confirm('Are you sure you want to delete this fragrance?')) return
     
@@ -114,7 +117,6 @@ export default function Catalog({ user, token }){
   return (
     <div className="catalog">
       <div className="controls">
-        {/* searching */}
         <input
           type="text"
           placeholder="Search fragrances..."
@@ -122,7 +124,6 @@ export default function Catalog({ user, token }){
           onChange={(e) => setSearch(e.target.value)}
           className="search-input"
         />
-        {/* sorting */}
         <select value={sort} onChange={(e) => setSort(e.target.value)} className="sort-select">
           <option value="popularity">Most Popular</option>
           <option value="rating">Highest Rated</option>
@@ -131,11 +132,9 @@ export default function Catalog({ user, token }){
           <option value="name_asc">Name: A to Z</option>
           <option value="name_desc">Name: Z to A</option>
         </select>
-        {/* filter button */}
         <button onClick={() => setShowFilters(!showFilters)} className="filter-btn">
           {showFilters ? 'Hide Filters' : 'Filter by Notes'} {selectedNotes.length > 0 && `(${selectedNotes.length})`}
         </button>
-        {/* add fragrance button */}
         {user && (
           <button onClick={() => setShowAddForm(true)} className="add-btn">
             + Add Fragrance
@@ -143,7 +142,6 @@ export default function Catalog({ user, token }){
         )}
       </div>
 
-      {/* note filters */}
       {showFilters && (
         <div className="filters">
           <div className="filter-header">
@@ -170,7 +168,6 @@ export default function Catalog({ user, token }){
       {error && <p className="error">{error}</p>}
 
       <div className="grid">
-        {/* fragrances */}
         {fragrances.map(f => (
           <div key={f.id} className="card" onClick={() => loadDetails(f.id)} style={{ cursor: 'pointer' }}>
             <h3>{f.name}</h3>
@@ -196,7 +193,13 @@ function DetailView({ data, onBack, user, token, onReviewAdded, onDelete }){
   const [reviewText, setReviewText] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [editingReviewId, setEditingReviewId] = useState(null)
+  const [editRating, setEditRating] = useState(5)
+  const [editText, setEditText] = useState('')
+  const [editingPriceId, setEditingPriceId] = useState(null)
+  const [editPriceAmount, setEditPriceAmount] = useState('')
 
+  // handle submitting review
   const handleSubmitReview = async (e) => {
     e.preventDefault()
     setSubmitting(true)
@@ -218,7 +221,6 @@ function DetailView({ data, onBack, user, token, onReviewAdded, onDelete }){
       
       setRating(5)
       setReviewText('')
-      
       await onReviewAdded(frag.id)
     } 
     catch (err) {
@@ -233,6 +235,90 @@ function DetailView({ data, onBack, user, token, onReviewAdded, onDelete }){
   const handleDelete = async () => {
     await onDelete(frag.id)
     onBack()
+  }
+
+  const startEditReview = (review) => {
+    setEditingReviewId(review.id)
+    setEditRating(review.rating)
+    setEditText(review.text || '')
+  }
+
+  const cancelEditReview = () => {
+    setEditingReviewId(null)
+    setEditRating(5)
+    setEditText('')
+  }
+
+  // handle updating review
+  const handleUpdateReview = async (reviewId) => {
+    setSubmitting(true)
+    setError('')
+
+    try {
+      await API.put(`/api/reviews/${reviewId}`, 
+        {
+          rating: editRating,
+          text: editText
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      )
+      
+      setEditingReviewId(null)
+      setEditRating(5)
+      setEditText('')
+      await onReviewAdded(frag.id)
+    } 
+    catch (err) {
+      console.error('Error updating review:', err)
+      setError(err.response?.data?.error || 'Failed to update review')
+    } 
+    finally {
+      setSubmitting(false)
+    }
+  }
+
+  const startEditPrice = (price) => {
+    setEditingPriceId(price.price_id)
+    setEditPriceAmount(price.amount)
+  }
+
+  const cancelEditPrice = () => {
+    setEditingPriceId(null)
+    setEditPriceAmount('')
+  }
+
+  // handle updating price
+  const handleUpdatePrice = async (priceId) => {
+    setSubmitting(true)
+    setError('')
+
+    try {
+      await API.put(`/api/prices/${priceId}`, 
+        {
+          amount: parseFloat(editPriceAmount)
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      )
+      
+      setEditingPriceId(null)
+      setEditPriceAmount('')
+      await onReviewAdded(frag.id)
+    } 
+    catch (err) {
+      console.error('Error updating price:', err)
+      setError(err.response?.data?.error || 'Failed to update price')
+    } 
+    finally {
+      setSubmitting(false)
+    }
   }
   
   return (
@@ -285,8 +371,29 @@ function DetailView({ data, onBack, user, token, onReviewAdded, onDelete }){
           <ul>
             {prices.map(p => (
               <li key={p.price_id}>
-                <strong>{p.size}</strong> - {p.retail_name ? `${p.retail_name}: ` : ''}
-                {p.amount} {p.currency || 'USD'}
+                {editingPriceId === p.price_id ? (
+                  <div className="edit-price-form">
+                    <strong>{p.size}</strong> - {p.retail_name ? `${p.retail_name}: ` : ''}
+                    <input type="number" step="0.01" value={editPriceAmount} onChange={(e) => setEditPriceAmount(e.target.value)} className="price-input"/>
+                    {p.currency || 'USD'}
+                    <button onClick={() => handleUpdatePrice(p.price_id)} className="save-price-btn" disabled={submitting}>
+                      Save
+                    </button>
+                    <button onClick={cancelEditPrice} className="cancel-price-btn">
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <strong>{p.size}</strong> - {p.retail_name ? `${p.retail_name}: ` : ''}
+                    {p.amount} {p.currency || 'USD'}
+                    {user && (
+                      <button onClick={() => startEditPrice(p)} className="edit-price-btn">
+                        Edit
+                      </button>
+                    )}
+                  </div>
+                )}
               </li>
             ))}
           </ul>
@@ -299,14 +406,7 @@ function DetailView({ data, onBack, user, token, onReviewAdded, onDelete }){
           <form onSubmit={handleSubmitReview} className="review-form">
             <div className="form-group">
               <label>Rating: {rating} ★</label>
-              <input
-                type="range"
-                min="1"
-                max="5"
-                value={rating}
-                onChange={(e) => setRating(Number(e.target.value))}
-                className="rating-slider"
-              />
+              <input type="range" min="1"max="5" value={rating} onChange={(e) => setRating(Number(e.target.value))}className="rating-slider"/>
             </div>
             <div className="form-group">
               <label>Your Review (optional)</label>
@@ -330,12 +430,42 @@ function DetailView({ data, onBack, user, token, onReviewAdded, onDelete }){
           <h3>Reviews</h3>
           {reviews.map(r => (
             <div key={r.id} className="review">
-              <div className="review-header">
-                <strong>{r.reviewer_name}</strong>
-                <span className="review-rating">★ {r.rating}</span>
-              </div>
-              {r.text && <p>{r.text}</p>}
-              <small>{new Date(r.created_at).toLocaleDateString()}</small>
+              {editingReviewId === r.id ? (
+                <div className="review-edit-form">
+                  <div className="form-group">
+                    <label>Rating: {editRating} ★</label>
+                    <input type="range" min="1" max="5" value={editRating} onChange={(e) => setEditRating(Number(e.target.value))} className="rating-slider"/>
+                  </div>
+                  <div className="form-group">
+                    <label>Review Text</label>
+                    <textarea value={editText} onChange={(e) => setEditText(e.target.value)} placeholder="Share your thoughts..." rows="4"/>
+                  </div>
+                  <div className="review-actions">
+                    <button onClick={() => handleUpdateReview(r.id)} className="save-btn" disabled={submitting}>
+                      {submitting ? 'Saving...' : 'Save'}
+                    </button>
+                    <button onClick={cancelEditReview} className="cancel-edit-btn" disabled={submitting}>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="review-header">
+                    <strong>{r.reviewer_name}</strong>
+                    <span className="review-rating">★ {r.rating}</span>
+                  </div>
+                  {r.text && <p>{r.text}</p>}
+                  <div className="review-footer">
+                    <small>{new Date(r.created_at).toLocaleDateString()}</small>
+                    {user && user.username === r.reviewer_name && (
+                      <button onClick={() => startEditReview(r)} className="edit-review-btn">
+                        Edit
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           ))}
         </div>
@@ -368,6 +498,7 @@ function AddFragranceForm({ onSubmit, onCancel }){
     }
   }
 
+  // add or remove note from type
   const toggleNote = (noteName, type) => {
     setSelectedNotes(prev => ({
       ...prev,
@@ -377,13 +508,14 @@ function AddFragranceForm({ onSubmit, onCancel }){
     }))
   }
 
+  // handle form submission
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!name.trim()) {
       alert('Fragrance name is required')
       return
     }
-    
+
     const notes = [
       ...selectedNotes.top,
       ...selectedNotes.middle,
