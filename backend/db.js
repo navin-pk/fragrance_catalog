@@ -5,7 +5,7 @@ dotenv.config()
 
 const { Pool } = pg
 
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/fragrances_db'
+const connectionString = process.env.DATABASE_URL || 'postgresql://postgres@localhost:5433/fragrances_db'
 
 let currentPool = new Pool({
   connectionString,
@@ -22,6 +22,7 @@ const delegator = {
 
 // Try a quick connect; if it fails, replace currentPool with a mock implementation.
 currentPool.connect().then((client) => {
+  console.log('✓ Database connected successfully')
   client.release()
 }).catch((err) => {
   console.warn('DB connection failed, using mock pool:', err.message)

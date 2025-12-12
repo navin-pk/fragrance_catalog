@@ -14,8 +14,8 @@ CREATE TABLE houses (
 
 CREATE TABLE perfumers (
     perfumer_id SERIAL PRIMARY KEY,
-    p_first VARCHAR(255) NOT NULL,
-    p_last VARCHAR(255) NOT NULL
+    first_name VARCHAR(255) NOT NULL,
+    last_name VARCHAR(255) NOT NULL
 );
 
 CREATE TABLE retailers (
@@ -55,14 +55,13 @@ CREATE TABLE prices (
 );
 
 CREATE TABLE reviews (
-    review_num SERIAL PRIMARY KEY,
+    review_id SERIAL PRIMARY KEY,
     frag_id INTEGER NOT NULL,
-    user_id INTEGER NOT NULL,
-    rating DECIMAL(3, 2) CHECK (rating >= 0 AND rating <= 5),
+    rating INTEGER CHECK (rating >= 0 AND rating <= 5),
     review_text TEXT,
-    date_posted TIMESTAMP DEFAULT now(),
-    FOREIGN KEY (frag_id) REFERENCES fragrances(frag_id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+    reviewer_name VARCHAR(255) DEFAULT 'Anonymous',
+    created_at TIMESTAMP DEFAULT now(),
+    FOREIGN KEY (frag_id) REFERENCES fragrances(frag_id) ON DELETE CASCADE
 );
 
 CREATE TABLE notes (
@@ -97,7 +96,6 @@ CREATE TABLE retailer_fragrance (
 
 CREATE INDEX fragrance_house ON fragrances(house_id);
 CREATE INDEX review_frag ON reviews(frag_id);
-CREATE INDEX review_user ON reviews(user_id);
 CREATE INDEX details_frag ON details(frag_id);
 CREATE INDEX price_details ON prices(details_id);
 CREATE INDEX price_retail ON prices(retail_id);
@@ -109,10 +107,10 @@ INSERT INTO houses (house_name, country, founded) VALUES
 ('Zest Labs', 'Italy', 2015),
 ('Noir Atelier', 'USA', 2008);
 
-INSERT INTO perfumers (p_first, p_last) VALUES
-('A', 'Perfumer'),
-('B', 'Creator'),
-('C', 'Maker');
+INSERT INTO perfumers (first_name, last_name) VALUES
+('Antoine', 'Lie'),
+('Fabio', 'Mancini'),
+('Christophe', 'Raynaud');
 
 INSERT INTO retailers (retail_name, website, status) VALUES
 ('Fragrance Direct', 'www.fragrancedirect.com', 'active'),
@@ -164,8 +162,10 @@ INSERT INTO users (username, email) VALUES
 ('lee_user', 'lee@example.com'),
 ('jordan_user', 'jordan@example.com');
 
-INSERT INTO reviews (frag_id, user_id, rating, review_text) VALUES
-(1, 1, 5.00, 'Lovely and long-lasting fragrance'),
-(1, 2, 4.00, 'Nice evening scent, very elegant'),
-(2, 3, 4.00, 'Great for daytime, fresh and clean'),
-(3, 4, 5.00, 'Exceptional composition, highly recommend');
+INSERT INTO reviews (frag_id, rating, review_text, reviewer_name) VALUES
+(1, 5, 'Lovely and long-lasting fragrance', 'Sam'),
+(1, 4, 'Nice evening scent, very elegant', 'Ava'),
+(2, 4, 'Great for daytime, fresh and clean', 'Lee'),
+(3, 5, 'Exceptional composition, highly recommend', 'Jordan'),
+(2, 5, 'Best citrus fragrance I''ve smelled', 'Maya'),
+(3, 4, 'Warm and cozy for winter', 'Alex');
