@@ -15,12 +15,14 @@ const PORT = process.env.PORT || 8000
 app.get('/api/fragrances', async (req, res) => {
   try {
     const { search, sort, limit = 50, offset = 0 } = req.query
-    // Simplified query: just return basic fragrance data
+    // Query with price from prices table
     let base = `SELECT f.frag_id AS id, f.frag_name AS name, h.house_name AS house,
       COALESCE((SELECT ROUND(AVG(r.rating)::numeric,2) FROM reviews r WHERE r.frag_id = f.frag_id), 0) AS rating,
       COALESCE((SELECT COUNT(*) FROM reviews r WHERE r.frag_id = f.frag_id), 0) AS popularity,
       NULL AS perfumer,
-      NULL AS price
+      (SELECT MIN(pr.amount) FROM prices pr 
+       JOIN details d ON pr.details_id = d.details_id 
+       WHERE d.frag_id = f.frag_id) AS price
       FROM fragrances f
       LEFT JOIN houses h ON f.house_id = h.house_id`
 
@@ -31,8 +33,8 @@ app.get('/api/fragrances', async (req, res) => {
       clauses.push(`(f.frag_name ILIKE $${params.length} OR h.house_name ILIKE $${params.length})`)
     }
     if (clauses.length) base += ` WHERE ` + clauses.join(' AND ')
-    if (sort === 'price_asc') base += ` ORDER BY f.frag_id ASC`
-    else if (sort === 'price_desc') base += ` ORDER BY f.frag_id DESC`
+    if (sort === 'price_asc') base += ` ORDER BY price ASC NULLS LAST`
+    else if (sort === 'price_desc') base += ` ORDER BY price DESC NULLS LAST`
     else if (sort === 'rating') base += ` ORDER BY rating DESC`
     else base += ` ORDER BY popularity DESC`
     params.push(parseInt(limit, 10))
