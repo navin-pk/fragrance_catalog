@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import API from '../api'
 import './catalog.css'
 
-export default function Catalog(){
+export default function Catalog({ user, token }){
   const [fragrances, setFragrances] = useState([])
   const [error, setError] = useState(null)
   const [search, setSearch] = useState('')
@@ -62,7 +62,7 @@ export default function Catalog(){
   }
 
   if (selectedId) {
-    return <DetailView data={selectedId} onBack={() => setSelectedId(null)} />
+    return <DetailView data={selectedId} onBack={() => setSelectedId(null)} user={user} token={token} onReviewAdded={loadDetails} />
   }
 
   // catalog view
@@ -139,8 +139,45 @@ export default function Catalog(){
 }
 
 // fragrance detail window
-function DetailView({ data, onBack }){
+function DetailView({ data, onBack, user, token, onReviewAdded }){
   const { fragrance: frag, notes = [], perfumers = [], prices = [], reviews = [] } = data
+  const [rating, setRating] = useState(5)
+  const [reviewText, setReviewText] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleSubmitReview = async (e) => {
+    e.preventDefault()
+    setSubmitting(true)
+    setError('')
+
+    try {
+      await API.post('/api/reviews', 
+        {
+          fragrance_id: frag.id,
+          rating,
+          text: reviewText
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      )
+      
+      // Clear form
+      setRating(5)
+      setReviewText('')
+      
+      // Reload details to show new review
+      await onReviewAdded(frag.id)
+    } catch (err) {
+      console.error('Error submitting review:', err)
+      setError(err.response?.data?.error || 'Failed to submit review')
+    } finally {
+      setSubmitting(false)
+    }
+  }
   
   return (
     <div className="detail">
@@ -192,6 +229,38 @@ function DetailView({ data, onBack }){
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {user && (
+        <div className="review-form-section">
+          <h3>Leave a Review</h3>
+          <form onSubmit={handleSubmitReview} className="review-form">
+            <div className="form-group">
+              <label>Rating: {rating} ★</label>
+              <input
+                type="range"
+                min="1"
+                max="5"
+                value={rating}
+                onChange={(e) => setRating(Number(e.target.value))}
+                className="rating-slider"
+              />
+            </div>
+            <div className="form-group">
+              <label>Your Review (optional)</label>
+              <textarea
+                value={reviewText}
+                onChange={(e) => setReviewText(e.target.value)}
+                placeholder="Share your thoughts about this fragrance..."
+                rows="4"
+              />
+            </div>
+            {error && <p className="error">{error}</p>}
+            <button type="submit" disabled={submitting} className="submit-review-btn">
+              {submitting ? 'Submitting...' : 'Submit Review'}
+            </button>
+          </form>
         </div>
       )}
 

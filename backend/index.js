@@ -1,6 +1,8 @@
 import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
+import bcrypt from 'bcryptjs'
+import jwt from 'jsonwebtoken'
 import pool from './db.js'
 
 dotenv.config()
@@ -9,6 +11,64 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 
+const JWT_SECRET = process.env.JWT_SECRET
+
+// auth
+const authenticateToken = (req, res, next) => {
+  const token = req.headers['authorization']?.split(' ')[1]
+  if (!token) return res.json({ error: 'Access denied' })
+  
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) return res.json({ error: 'Invalid token' })
+    req.user = user
+    next()
+  })
+}
+
+// signup
+app.post('/api/signup', async (req, res) => {
+  try {
+    const { username, email, password } = req.body
+    const hashedPassword = await bcrypt.hash(password, 10)
+    
+    // insert statement
+    const { rows } = await pool.query(
+      'INSERT INTO users(username, email, password) VALUES($1, $2, $3) RETURNING user_id, username, email',
+      [username, email, hashedPassword]
+    )
+    
+    const user = rows[0]
+    const token = jwt.sign({ userId: user.user_id, username: user.username }, JWT_SECRET)
+    
+    res.json({ token, user: { id: user.user_id, username: user.username, email: user.email } })
+  } 
+  catch (err) {
+    res.json({ error: 'Could not create account' })
+  }
+})
+
+// login
+app.post('/api/login', async (req, res) => {
+  try {
+    const { username, password } = req.body
+    
+    // check username
+    const { rows } = await pool.query('SELECT * FROM users WHERE username = $1', [username])
+    if (rows.length === 0) return res.json({ error: 'User does not exist' })
+    
+    // check password
+    const user = rows[0]
+    const validPassword = await bcrypt.compare(password, user.password)
+    if (!validPassword) return res.json({ error: 'Invalid password' })
+    
+    const token = jwt.sign({ userId: user.user_id, username: user.username }, JWT_SECRET)
+    res.json({ token, user: { id: user.user_id, username: user.username, email: user.email } })
+  } 
+  catch (err) {
+    res.json({ error: 'Server error' })
+  }
+})
+
 // get all notes
 app.get('/api/notes', async (req, res) => {
   try {
@@ -16,9 +76,10 @@ app.get('/api/notes', async (req, res) => {
       `SELECT DISTINCT note_name, type FROM notes ORDER BY type, note_name`
     )
     res.json(rows)
-  } catch (err) {
+  } 
+  catch (err) {
     console.error('Error:', err.message)
-    res.status(500).json({ error: err.message })
+    res.json({ error: err.message })
   }
 })
 
@@ -89,7 +150,7 @@ app.get('/api/fragrances', async (req, res) => {
   // errors
   catch (err) {
     console.error('Error:', err.message)
-    res.status(500).json({ error: err.message })
+    res.json({ error: err.message })
   }
 })
 
@@ -114,7 +175,7 @@ app.get('/api/fragrances/:id', async (req, res) => {
       [id]
     )
 
-    if (!frows.length) return res.status(404).json({ error: 'not found' })
+    if (!frows.length) return res.json({ error: 'not found' })
     const f = frows[0]
 
     // notes
@@ -167,24 +228,27 @@ app.get('/api/fragrances/:id', async (req, res) => {
   // error 
   catch (err) {
     console.error(err)
-    res.status(500).json({ error: 'server error' })
+    res.json({ error: 'server error' })
   }
 })
 
 // reviews
-app.post('/api/reviews', async (req, res) => {
+app.post('/api/reviews', authenticateToken, async (req, res) => {
   try {
-    const { fragrance_id, rating, text, reviewer_name } = req.body
+    const { fragrance_id, rating, text } = req.body
+    const userId = req.user.userId
+    const username = req.user.username
+    
     const { rows } = await pool.query(
-      'INSERT INTO reviews(frag_id, rating, review_text, reviewer_name, created_at) VALUES($1,$2,$3,$4,now()) RETURNING *',
-      [fragrance_id, rating, text || null, reviewer_name || 'Anonymous']
+      'INSERT INTO reviews(frag_id, user_id, rating, review_text, reviewer_name, created_at) VALUES($1,$2,$3,$4,$5,now()) RETURNING *',
+      [fragrance_id, userId, rating, text || null, username]
     )
-    res.status(201).json(rows[0])
+    res.json(rows[0])
   } 
   // error
   catch (err) {
     console.error(err)
-    res.status(500).json({ error: 'server error' })
+    res.json({ error: 'server error' })
   }
 })
 

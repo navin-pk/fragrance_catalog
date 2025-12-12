@@ -2,6 +2,7 @@ CREATE TABLE users (
     user_id SERIAL,
     username VARCHAR(100) NOT NULL UNIQUE,
     email VARCHAR(100) NOT NULL UNIQUE,
+    password VARCHAR(100) NOT NULL,
     date_created TIMESTAMP DEFAULT now() NOT NULL,
     PRIMARY KEY (user_id)
 );
@@ -64,12 +65,14 @@ CREATE TABLE prices (
 CREATE TABLE reviews (
     review_id SERIAL,
     frag_id INT NOT NULL,
+    user_id INT,
     rating INT CHECK (rating >= 0 AND rating <= 5),
     review_text TEXT,
     reviewer_name VARCHAR(100) DEFAULT 'Anonymous',
     created_at TIMESTAMP DEFAULT now(),
     PRIMARY KEY (review_id),
-    FOREIGN KEY (frag_id) REFERENCES fragrances(frag_id) ON DELETE CASCADE
+    FOREIGN KEY (frag_id) REFERENCES fragrances(frag_id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL
 );
 
 CREATE TABLE notes (
@@ -595,11 +598,3 @@ INSERT INTO retailer_fragrance (retail_id, frag_id) VALUES
 (10, 1), (10, 2), (10, 3), (10, 4),
 (11, 13), (11, 14), (11, 15), (11, 16), (11, 17), (11, 18), (11, 19), (11, 20),
 (12, 21), (12, 22), (12, 23), (12, 24), (12, 25), (12, 26), (12, 27);
-
-INSERT INTO users (username, email, date_created) VALUES
-('fragrance_enthusiast', 'enthusiast@email.com', '2023-01-15 08:00:00'),
-('luxury_scents', 'luxury@email.com', '2023-06-20 10:30:00'),
-('classic_collector', 'collector@email.com', '2024-02-10 14:15:00'),
-('modern_nose', 'modern@email.com', '2024-08-05 09:45:00'),
-('niche_hunter', 'niche@email.com', '2024-03-12 12:00:00'),
-('daily_wearer', 'daily@email.com', '2023-11-08 15:30:00');
