@@ -9,10 +9,23 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 
+// get all notes
+app.get('/api/notes', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT DISTINCT note_name, type FROM notes ORDER BY type, note_name`
+    )
+    res.json(rows)
+  } catch (err) {
+    console.error('Error:', err.message)
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // fragrance list
 app.get('/api/fragrances', async (req, res) => {
   try {
-    const { search, sort } = req.query
+    const { search, sort, notes } = req.query
     let base = 
       `SELECT f.frag_id AS id, 
               f.frag_name AS name, 
@@ -26,12 +39,26 @@ app.get('/api/fragrances', async (req, res) => {
       LEFT JOIN details d ON f.frag_id = d.frag_id
       LEFT JOIN prices pr ON d.details_id = pr.details_id`
 
-    // search
+    // search & filter
     const params = []
+    const conditions = []
   
     if (search) {
-      base += ` WHERE (f.frag_name = $1 OR h.house_name = $1)`
-      params.push(search)
+      conditions.push(`(f.frag_name ILIKE $${params.length + 1} OR h.house_name ILIKE $${params.length + 1})`)
+      params.push(`%${search}%`)
+    }
+
+    // filter by notes
+    if (notes) {
+      const noteList = Array.isArray(notes) ? notes : [notes]
+      base += ` JOIN fragrance_notes fn ON f.frag_id = fn.frag_id
+                JOIN notes n ON fn.note_id = n.note_id`
+      conditions.push(`n.note_name = ANY($${params.length + 1})`)
+      params.push(noteList)
+    }
+
+    if (conditions.length > 0) {
+      base += ` WHERE ` + conditions.join(' AND ')
     }
 
     base += ` GROUP BY f.frag_id, f.frag_name, h.house_name`
@@ -128,9 +155,6 @@ app.get('/api/fragrances/:id', async (req, res) => {
     )
 
     const perfumer = perfumersQ.rows.length ? `${perfumersQ.rows[0].first_name} ${perfumersQ.rows[0].last_name}` : null
-
-    console.log(`Fragrance ${id} - Notes found:`, notesQ.rows.length)
-    console.log('Notes data:', notesQ.rows)
 
     res.json({
       fragrance: { id: f.id, name: f.name, house: f.house, perfumer, price: pricesQ.rows.length ? pricesQ.rows[0].amount : null, popularity: f.popularity, rating: f.rating, description: f.description, release_date: f.release_date },

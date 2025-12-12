@@ -8,14 +8,31 @@ export default function Catalog(){
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState('popularity')
   const [selectedId, setSelectedId] = useState(null)
+  const [allNotes, setAllNotes] = useState([])
+  const [selectedNotes, setSelectedNotes] = useState([])
+  const [showFilters, setShowFilters] = useState(false)
 
-  useEffect(() => { fetchFragrances() }, [search, sort])
+  useEffect(() => { fetchNotes() }, [])
+  useEffect(() => { fetchFragrances() }, [search, sort, selectedNotes])
+
+  async function fetchNotes(){
+    try {
+      const res = await API.get('/api/notes')
+      setAllNotes(res.data || [])
+    } catch (err) {
+      console.error('Error loading notes:', err)
+    }
+  }
 
   async function fetchFragrances(){
     try {
       setError(null)
       const res = await API.get('/api/fragrances', {
-        params: { search: search || undefined, sort: sort || undefined }
+        params: { 
+          search: search || undefined, 
+          sort: sort || undefined,
+          notes: selectedNotes.length > 0 ? selectedNotes : undefined
+        }
       })
       setFragrances(res.data || [])
     } 
@@ -24,6 +41,14 @@ export default function Catalog(){
       setError('Failed to load fragrances')
       setFragrances([])
     } 
+  }
+
+  function toggleNote(noteName){
+    setSelectedNotes(prev => 
+      prev.includes(noteName) 
+        ? prev.filter(n => n !== noteName)
+        : [...prev, noteName]
+    )
   }
 
   async function loadDetails(fragId){
@@ -61,7 +86,35 @@ export default function Catalog(){
           <option value="name_asc">Name: A to Z</option>
           <option value="name_desc">Name: Z to A</option>
         </select>
+        {/* filter button */}
+        <button onClick={() => setShowFilters(!showFilters)} className="filter-btn">
+          {showFilters ? 'Hide Filters' : 'Filter by Notes'} {selectedNotes.length > 0 && `(${selectedNotes.length})`}
+        </button>
       </div>
+
+      {/* note filters */}
+      {showFilters && (
+        <div className="filters">
+          <div className="filter-header">
+            <h4>Filter by Notes</h4>
+            {selectedNotes.length > 0 && (
+              <button onClick={() => setSelectedNotes([])} className="clear-btn">Clear All</button>
+            )}
+          </div>
+          <div className="checkbox-group">
+            {allNotes.map(note => (
+              <label key={note.note_name} className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={selectedNotes.includes(note.note_name)}
+                  onChange={() => toggleNote(note.note_name)}
+                />
+                {note.note_name}
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
       
       {error && <p className="error">{error}</p>}
 
