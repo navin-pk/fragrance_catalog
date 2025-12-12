@@ -11,6 +11,7 @@ export default function Catalog({ user, token }){
   const [allNotes, setAllNotes] = useState([])
   const [selectedNotes, setSelectedNotes] = useState([])
   const [showFilters, setShowFilters] = useState(false)
+  const [showAddForm, setShowAddForm] = useState(false)
 
   useEffect(() => { fetchNotes() }, [])
   useEffect(() => { fetchFragrances() }, [search, sort, selectedNotes])
@@ -27,6 +28,7 @@ export default function Catalog({ user, token }){
   async function fetchFragrances(){
     try {
       setError(null)
+      console.log('Fetching fragrances with params:', { search, sort, selectedNotes })
       const res = await API.get('/api/fragrances', {
         params: { 
           search: search || undefined, 
@@ -34,6 +36,7 @@ export default function Catalog({ user, token }){
           notes: selectedNotes.length > 0 ? selectedNotes : undefined
         }
       })
+      console.log('Received fragrances:', res.data?.length, 'items')
       setFragrances(res.data || [])
     } 
     catch (err) {
@@ -61,8 +64,50 @@ export default function Catalog({ user, token }){
     }
   }
 
+  async function handleAddFragrance(formData){
+    try {
+      setError(null)
+      const response = await API.post('/api/fragrances', formData, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      
+      setShowAddForm(false)
+      setSearch('')
+      setSelectedNotes([])
+
+      await fetchFragrances()
+    } 
+    catch (err) {
+      console.error('Error adding fragrance:', err)
+    }
+  }
+
+  async function handleDeleteFragrance(fragId){
+    if (!window.confirm('Are you sure you want to delete this fragrance?')) return
+    
+    try {
+      setError(null)
+      await API.delete(`/api/fragrances/${fragId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      fetchFragrances()
+    } 
+    catch (err) {
+      console.error('Error deleting fragrance:', err)
+      setError(err.response?.data?.error || 'Failed to delete fragrance')
+    }
+  }
+
   if (selectedId) {
-    return <DetailView data={selectedId} onBack={() => setSelectedId(null)} user={user} token={token} onReviewAdded={loadDetails} />
+    return <DetailView data={selectedId} onBack={() => setSelectedId(null)} user={user} token={token} onReviewAdded={loadDetails} onDelete={handleDeleteFragrance} />
+  }
+
+  if (showAddForm) {
+    return <AddFragranceForm onSubmit={handleAddFragrance} onCancel={() => setShowAddForm(false)} />
   }
 
   // catalog view
@@ -90,6 +135,12 @@ export default function Catalog({ user, token }){
         <button onClick={() => setShowFilters(!showFilters)} className="filter-btn">
           {showFilters ? 'Hide Filters' : 'Filter by Notes'} {selectedNotes.length > 0 && `(${selectedNotes.length})`}
         </button>
+        {/* add fragrance button */}
+        {user && (
+          <button onClick={() => setShowAddForm(true)} className="add-btn">
+            + Add Fragrance
+          </button>
+        )}
       </div>
 
       {/* note filters */}
@@ -139,7 +190,7 @@ export default function Catalog({ user, token }){
 }
 
 // fragrance detail window
-function DetailView({ data, onBack, user, token, onReviewAdded }){
+function DetailView({ data, onBack, user, token, onReviewAdded, onDelete }){
   const { fragrance: frag, notes = [], perfumers = [], prices = [], reviews = [] } = data
   const [rating, setRating] = useState(5)
   const [reviewText, setReviewText] = useState('')
@@ -165,34 +216,44 @@ function DetailView({ data, onBack, user, token, onReviewAdded }){
         }
       )
       
-      // Clear form
       setRating(5)
       setReviewText('')
       
-      // Reload details to show new review
       await onReviewAdded(frag.id)
-    } catch (err) {
+    } 
+    catch (err) {
       console.error('Error submitting review:', err)
       setError(err.response?.data?.error || 'Failed to submit review')
-    } finally {
+    } 
+    finally {
       setSubmitting(false)
     }
+  }
+
+  const handleDelete = async () => {
+    await onDelete(frag.id)
+    onBack()
   }
   
   return (
     <div className="detail">
-      <button onClick={onBack} className="back-btn">← Back</button>
+      <div className="detail-header">
+        <button onClick={onBack} className="back-btn">← Back</button>
+        {user && (
+          <button onClick={handleDelete} className="delete-btn">Delete</button>
+        )}
+      </div>
       <h2>{frag.name}</h2>
-      <p className="house">{frag.house}</p>
+      {frag.house && <p className="house">{frag.house}</p>}
       
       {frag.perfumer && <p className="perfumer"><strong>Perfumer:</strong> {frag.perfumer}</p>}
       
       {frag.description && <p className="description">{frag.description}</p>}
       
       <div className="info">
-        <div><strong>Rating:</strong> ⭐ {frag.rating ?? '—'}</div>
+        <div><strong>Rating:</strong> ★  {frag.rating ?? '—'}</div>
         <div><strong>Reviews:</strong> {frag.popularity ?? 0}</div>
-        <div><strong>Price:</strong> ${frag.price ?? '—'}</div>
+        {frag.price && <div><strong>Price:</strong> ${frag.price}</div>}
         {frag.release_date && <div><strong>Released:</strong> {new Date(frag.release_date).getFullYear()}</div>}
       </div>
 
@@ -279,6 +340,168 @@ function DetailView({ data, onBack, user, token, onReviewAdded }){
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+// add fragrance form
+function AddFragranceForm({ onSubmit, onCancel }){
+  const [name, setName] = useState('')
+  const [house, setHouse] = useState('')
+  const [releaseDate, setReleaseDate] = useState('')
+  const [description, setDescription] = useState('')
+  const [price, setPrice] = useState('')
+  const [size, setSize] = useState('100ml')
+  const [selectedNotes, setSelectedNotes] = useState({ top: [], middle: [], base: [] })
+  const [allNotes, setAllNotes] = useState([])
+
+  useEffect(() => {
+    fetchNotes()
+  }, [])
+
+  async function fetchNotes() {
+    try {
+      const res = await API.get('/api/notes')
+      setAllNotes(res.data || [])
+    } catch (err) {
+      console.error('Error loading notes:', err)
+    }
+  }
+
+  const toggleNote = (noteName, type) => {
+    setSelectedNotes(prev => ({
+      ...prev,
+      [type]: prev[type].includes(noteName)
+        ? prev[type].filter(n => n !== noteName)
+        : [...prev[type], noteName]
+    }))
+  }
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    if (!name.trim()) {
+      alert('Fragrance name is required')
+      return
+    }
+    
+    const notes = [
+      ...selectedNotes.top,
+      ...selectedNotes.middle,
+      ...selectedNotes.base
+    ]
+
+    onSubmit({
+      name,
+      house: house || null,
+      release_date: releaseDate || null,
+      description: description || null,
+      price: price ? parseFloat(price) : null,
+      size: size || '100ml',
+      notes: notes.length > 0 ? notes : null
+    })
+  }
+
+  const notesByType = {
+    Top: allNotes.filter(n => n.type === 'Top'),
+    Middle: allNotes.filter(n => n.type === 'Middle'),
+    Base: allNotes.filter(n => n.type === 'Base')
+  }
+
+  return (
+    <div className="add-form">
+      <h2>Add New Fragrance</h2>
+      <form onSubmit={handleSubmit}>
+        <div className="form-group">
+          <label>Fragrance Name *</label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Enter fragrance name"
+            required
+          />
+        </div>
+        
+        <div className="form-group">
+          <label>House/Brand</label>
+          <input
+            type="text"
+            value={house}
+            onChange={(e) => setHouse(e.target.value)}
+            placeholder="Enter house or brand name"
+          />
+        </div>
+        
+        <div className="form-group">
+          <label>Release Date</label>
+          <input
+            type="date"
+            value={releaseDate}
+            onChange={(e) => setReleaseDate(e.target.value)}
+          />
+        </div>
+        
+        <div className="form-group">
+          <label>Description</label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Enter a description of the fragrance"
+            rows="5"
+          />
+        </div>
+
+        <div className="form-row">
+          <div className="form-group">
+            <label>Price (USD)</label>
+            <input
+              type="number"
+              step="0.01"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              placeholder="0.00"
+            />
+          </div>
+          
+          <div className="form-group">
+            <label>Size</label>
+            <select value={size} onChange={(e) => setSize(e.target.value)}>
+              <option value="30ml">30ml</option>
+              <option value="50ml">50ml</option>
+              <option value="75ml">75ml</option>
+              <option value="100ml">100ml</option>
+              <option value="125ml">125ml</option>
+              <option value="150ml">150ml</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="form-group notes-selection">
+          <label>Notes</label>
+          {['Top', 'Middle', 'Base'].map(type => (
+            <div key={type} className="note-type-section">
+              <h4>{type} Notes</h4>
+              <div className="checkbox-group">
+                {notesByType[type]?.map(note => (
+                  <label key={note.note_name} className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={selectedNotes[type.toLowerCase()].includes(note.note_name)}
+                      onChange={() => toggleNote(note.note_name, type.toLowerCase())}
+                    />
+                    {note.note_name}
+                  </label>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        <div className="form-actions">
+          <button type="submit" className="submit-btn">Add Fragrance</button>
+          <button type="button" onClick={onCancel} className="cancel-btn">Cancel</button>
+        </div>
+      </form>
     </div>
   )
 }

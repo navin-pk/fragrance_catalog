@@ -9,13 +9,18 @@ function App() {
   const [showAuth, setShowAuth] = useState(false)
 
   useEffect(() => {
-    // Check if user is already logged in
     const savedToken = localStorage.getItem('token')
     const savedUser = localStorage.getItem('user')
     
-    if (savedToken && savedUser) {
-      setToken(savedToken)
-      setUser(JSON.parse(savedUser))
+    if (savedToken && savedUser && savedUser !== 'undefined') {
+      try {
+        setToken(savedToken)
+        setUser(JSON.parse(savedUser))
+      } catch (err) {
+        console.error('Error parsing saved user:', err)
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+      }
     }
   }, [])
 

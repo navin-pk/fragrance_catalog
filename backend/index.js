@@ -16,10 +16,10 @@ const JWT_SECRET = process.env.JWT_SECRET
 // auth
 const authenticateToken = (req, res, next) => {
   const token = req.headers['authorization']?.split(' ')[1]
-  if (!token) return res.json({ error: 'Access denied' })
+  if (!token) return res.status(401).json({ error: 'Access denied' })
   
   jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) return res.json({ error: 'Invalid token' })
+    if (err) return res.status(403).json({ error: 'Invalid token' })
     req.user = user
     next()
   })
@@ -126,13 +126,13 @@ app.get('/api/fragrances', async (req, res) => {
     
     // sorting
     if (sort === 'price_asc') {
-      base += ` ORDER BY price ASC`
+      base += ` ORDER BY price ASC, f.frag_name ASC`
     } 
     else if (sort === 'price_desc') {
-      base += ` ORDER BY price DESC`
+      base += ` ORDER BY price DESC, f.frag_name ASC`
     } 
     else if (sort === 'rating') {
-      base += ` ORDER BY rating DESC`
+      base += ` ORDER BY rating DESC, f.frag_name ASC`
     } 
     else if (sort === 'name_asc') {
       base += ` ORDER BY f.frag_name ASC`
@@ -141,7 +141,7 @@ app.get('/api/fragrances', async (req, res) => {
       base += ` ORDER BY f.frag_name DESC`
     } 
     else {
-      base += ` ORDER BY popularity DESC`
+      base += ` ORDER BY popularity DESC, f.frag_name ASC`
     }
     
     const { rows } = await pool.query(base, params)
@@ -249,6 +249,102 @@ app.post('/api/reviews', authenticateToken, async (req, res) => {
   catch (err) {
     console.error(err)
     res.json({ error: 'server error' })
+  }
+})
+
+// add fragrance
+app.post('/api/fragrances', authenticateToken, async (req, res) => {
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+    
+    const { name, house, release_date, description, price, size, notes } = req.body
+    
+    // house input
+    let houseId = null
+    if (house) {
+      const { rows: houseRows } = await client.query(
+        'SELECT house_id FROM houses WHERE house_name = $1',
+        [house]
+      )
+      
+      if (houseRows.length > 0) {
+        houseId = houseRows[0].house_id
+      } 
+      else {
+        const { rows: newHouse } = await client.query(
+          'INSERT INTO houses(house_name, country, founded) VALUES($1, $2, $3) RETURNING house_id',
+          [house, 'Unknown', 2000]
+        )
+        houseId = newHouse[0].house_id
+      }
+    }
+    
+    // insert fragrance
+    const { rows } = await client.query(
+      'INSERT INTO fragrances(frag_name, house_id, release_date, description) VALUES($1, $2, $3, $4) RETURNING frag_id',
+      [name, houseId, release_date || new Date(), description || null]
+    )
+    
+    const fragId = rows[0].frag_id
+
+    if (price && size) {
+      // size input
+      const { rows: detailsRows } = await client.query(
+        'INSERT INTO details(frag_id, concentration, size, sillage, gender) VALUES($1, $2, $3, $4, $5) RETURNING details_id',
+        [fragId, 'EDP', size, 'Moderate', 'Unisex']
+      )
+      
+      const detailsId = detailsRows[0].details_id
+      
+      // price input
+      await client.query(
+        'INSERT INTO prices(details_id, amount, currency) VALUES($1, $2, $3)',
+        [detailsId, price, 'USD']
+      )
+    }
+
+    if (notes && notes.length > 0) {
+      for (const noteName of notes) {
+        // notes input
+        const { rows: noteRows } = await client.query(
+          'SELECT note_id FROM notes WHERE note_name = $1',
+          [noteName]
+        )
+        
+        if (noteRows.length > 0) {
+          const noteId = noteRows[0].note_id
+          await client.query(
+            'INSERT INTO fragrance_notes(frag_id, note_id) VALUES($1, $2)',
+            [fragId, noteId]
+          )
+        }
+      }
+    }
+    
+    await client.query('COMMIT')
+    res.json({ id: fragId, message: 'Fragrance added successfully' })
+  } 
+  catch (err) {
+    await client.query('ROLLBACK')
+    console.error(err)
+    res.json({ error: 'Failed to add fragrance' })
+  } 
+  finally {
+    client.release()
+  }
+})
+
+// delete fragrance
+app.delete('/api/fragrances/:id', authenticateToken, async (req, res) => {
+  try {
+    const id = req.params.id
+    await pool.query('DELETE FROM fragrances WHERE frag_id = $1', [id])
+    res.json({ message: 'Fragrance deleted successfully' })
+  } 
+  catch (err) {
+    console.error(err)
+    res.json({ error: 'Failed to delete fragrance' })
   }
 })
 

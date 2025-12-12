@@ -10,7 +10,7 @@ const pool = new Pool({
 })
 
 pool.connect()
-  .then(() => console.log('✓ Database connected successfully'))
+  .then(() => console.log('Database connected successfully'))
   .catch((err) => console.error('Database connection error:', err.message))
 
 export default pool
