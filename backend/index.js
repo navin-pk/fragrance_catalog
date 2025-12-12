@@ -46,6 +46,12 @@ app.get('/api/fragrances', async (req, res) => {
     else if (sort === 'rating') {
       base += ` ORDER BY rating DESC`
     } 
+    else if (sort === 'name_asc') {
+      base += ` ORDER BY f.frag_name ASC`
+    } 
+    else if (sort === 'name_desc') {
+      base += ` ORDER BY f.frag_name DESC`
+    } 
     else {
       base += ` ORDER BY popularity DESC`
     }
@@ -104,7 +110,7 @@ app.get('/api/fragrances/:id', async (req, res) => {
 
     // prices
     const pricesQ = await pool.query(
-      `SELECT pr.price_id, pr.amount, pr.currency, r.retail_name 
+      `SELECT pr.price_id, pr.amount, pr.currency, r.retail_name, d.size 
       FROM prices pr
       JOIN details d ON pr.details_id = d.details_id
       LEFT JOIN retailers r ON pr.retail_id = r.retail_id
@@ -122,6 +128,9 @@ app.get('/api/fragrances/:id', async (req, res) => {
     )
 
     const perfumer = perfumersQ.rows.length ? `${perfumersQ.rows[0].first_name} ${perfumersQ.rows[0].last_name}` : null
+
+    console.log(`Fragrance ${id} - Notes found:`, notesQ.rows.length)
+    console.log('Notes data:', notesQ.rows)
 
     res.json({
       fragrance: { id: f.id, name: f.name, house: f.house, perfumer, price: pricesQ.rows.length ? pricesQ.rows[0].amount : null, popularity: f.popularity, rating: f.rating, description: f.description, release_date: f.release_date },
@@ -153,4 +162,9 @@ app.post('/api/reviews', async (req, res) => {
     console.error(err)
     res.status(500).json({ error: 'server error' })
   }
+})
+
+const PORT = process.env.PORT || 5000
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`)
 })
