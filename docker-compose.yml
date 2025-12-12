@@ -1,0 +1,29 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: fragrance_user
+      POSTGRES_PASSWORD: fragrance_pass
+      POSTGRES_DB: fragrance_db
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./backend/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+  backend:
+    build:
+      context: ./backend
+    depends_on:
+      - db
+    env_file:
+      - ./backend/.env
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend:/usr/src/app
+    restart: on-failure
+
+volumes:
+  db-data:
