@@ -288,6 +288,41 @@ app.put('/api/reviews/:id', authenticateToken, async (req, res) => {
   }
 })
 
+// delete review
+app.delete('/api/reviews/:id', authenticateToken, async (req, res) => {
+  try {
+    const reviewId = req.params.id
+    const userId = req.user.userId
+    
+    // verify user owns this review
+    const { rows: checkRows } = await pool.query(
+      'SELECT user_id FROM reviews WHERE review_id = $1',
+      [reviewId]
+    )
+    
+    if (checkRows.length === 0) {
+      return res.json({ error: 'Review not found' })
+    }
+    
+    if (checkRows[0].user_id !== userId) {
+      return res.json({ error: 'Not authorized to delete this review' })
+    }
+    
+    // delete the review
+    await pool.query(
+      'DELETE FROM reviews WHERE review_id = $1',
+      [reviewId]
+    )
+    
+    res.json({ message: 'Review deleted successfully' })
+  } 
+  // error
+  catch (err) {
+    console.error(err)
+    res.json({ error: 'server error' })
+  }
+})
+
 // add fragrance
 app.post('/api/fragrances', authenticateToken, async (req, res) => {
   const client = await pool.connect()

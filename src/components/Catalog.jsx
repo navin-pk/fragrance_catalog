@@ -281,6 +281,31 @@ function DetailView({ data, onBack, user, token, onReviewAdded, onDelete }){
     }
   }
 
+  // handle deleting review
+  const handleDeleteReview = async (reviewId) => {
+    if (!window.confirm('Are you sure you want to delete this review?')) return
+    
+    setSubmitting(true)
+    setError('')
+
+    try {
+      await API.delete(`/api/reviews/${reviewId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      
+      await onReviewAdded(frag.id)
+    } 
+    catch (err) {
+      console.error('Error deleting review:', err)
+      setError(err.response?.data?.error || 'Failed to delete review')
+    } 
+    finally {
+      setSubmitting(false)
+    }
+  }
+
   const startEditPrice = (price) => {
     setEditingPriceId(price.price_id)
     setEditPriceAmount(price.amount)
@@ -446,6 +471,9 @@ function DetailView({ data, onBack, user, token, onReviewAdded, onDelete }){
                     </button>
                     <button onClick={cancelEditReview} className="cancel-edit-btn" disabled={submitting}>
                       Cancel
+                    </button>
+                    <button onClick={() => handleDeleteReview(r.id)} className="delete-btn" disabled={submitting}>
+                      Delete
                     </button>
                   </div>
                 </div>
