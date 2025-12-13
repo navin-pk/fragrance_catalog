@@ -1,3 +1,4 @@
+/* Controls */
 .controls {
   display: flex;
   gap: 10px;
@@ -17,6 +18,7 @@
   min-width: 200px;
 }
 
+/* Filters */
 .filters {
   margin-bottom: 20px;
   padding: 12px;
@@ -47,6 +49,7 @@
   gap: 6px;
 }
 
+/* Catalog Grid */
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -82,21 +85,20 @@
   margin: 20px 0;
 }
 
+/* Detail View */
 .detail {
   max-width: 700px;
   margin: 0 auto;
 }
 
-.back-btn {
-  padding: 6px 12px;
-  margin-bottom: 16px;
-  border: 1px solid #ccc;
-  background: white;
-  cursor: pointer;
-}
-
 .detail h2 {
   margin: 0 0 6px 0;
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
 }
 
 .info {
@@ -138,10 +140,29 @@
 }
 
 .prices-section li {
-  padding: 6px 0;
-  border-bottom: 1px solid #ddd;
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
 }
 
+.prices-section li:last-child {
+  border-bottom: none;
+}
+
+.edit-price-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.price-input {
+  width: 100px;
+  padding: 4px 8px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+}
+
+/* Reviews */
 .review {
   padding: 12px;
   margin-bottom: 12px;
@@ -152,6 +173,13 @@
   display: flex;
   justify-content: space-between;
   margin-bottom: 8px;
+}
+
+.review-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
 }
 
 .review-form-section {
@@ -167,77 +195,27 @@
   margin-bottom: 16px;
 }
 
-.review-form .form-group {
-  margin-bottom: 16px;
-}
-
-.review-form label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 500;
-}
-
-.review-form .rating-slider {
-  width: 100%;
-  cursor: pointer;
-}
-
-.review-form textarea {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-family: inherit;
-  font-size: 1rem;
-  resize: vertical;
-}
-
-.submit-review-btn {
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 1rem;
-}
-
-.submit-review-btn:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-}
-
 .review-form .error {
   color: #ff1100;
   margin: 10px 0;
 }
 
-.add-btn {
-  padding: 8px 16px;
-  background: black;
-  color: white;
-  border: none;
-  cursor: pointer;
-  font-weight: 500;
-  border-radius: 4px;
+.review-edit-form, .review-form .form-group, .review-edit-form .form-group {
+  margin-bottom: 12px;
 }
 
-.delete-btn {
-  padding: 6px 12px;
-  background: black;
-  color: white;
-  border: none;
-  cursor: pointer;
-  border-radius: 4px;
+.review-edit-form {
+  padding: 12px;
 }
 
-.detail-header {
+.review-actions {
   display: flex;
-  justify-content: space-between;
-  margin-bottom: 16px;
+  gap: 8px;
+  margin-top: 12px;
 }
 
-/* Add Form */
+/* Forms */
 .add-form {
-  width: 100%;
   max-width: 800px;
   margin: 0 auto;
   padding: 20px;
@@ -247,11 +225,11 @@
   margin-bottom: 20px;
 }
 
-.add-form .form-group {
+.add-form .form-group, .review-form .form-group, .review-edit-form .form-group {
   margin-bottom: 16px;
 }
 
-.add-form label {
+.add-form label, .review-form label, .review-edit-form label {
   display: block;
   margin-bottom: 6px;
   font-weight: 500;
@@ -261,17 +239,21 @@
 .add-form input[type="date"],
 .add-form input[type="number"],
 .add-form select,
-.add-form textarea {
+.add-form textarea,
+.review-form textarea,
+.review-edit-form textarea {
   width: 100%;
   padding: 10px;
   border: 1px solid #ccc;
   border-radius: 4px;
   font-family: inherit;
   font-size: 1rem;
+  resize: vertical;
 }
 
-.add-form textarea {
-  resize: vertical;
+.review-form .rating-slider, .review-edit-form .rating-slider {
+  width: 100%;
+  cursor: pointer;
 }
 
 .form-row {
@@ -290,7 +272,6 @@
 
 .note-type-section h4 {
   margin: 10px 0;
-  font-size: 1rem;
   color: #555;
 }
 
@@ -300,168 +281,55 @@
   margin-top: 20px;
 }
 
-.submit-btn {
-  padding: 10px 20px;
+/* Buttons */
+.add-btn, .delete-btn, .submit-btn, .submit-review-btn, .cancel-btn,
+.edit-price-btn, .save-price-btn, .cancel-price-btn,
+.edit-review-btn, .save-btn, .cancel-edit-btn {
   background: black;
   color: white;
   border: none;
-  cursor: pointer;
-  font-size: 1rem;
   border-radius: 4px;
-}
-/* Price editing */
-.edit-price-form {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  cursor: pointer;
 }
 
-.price-input {
-  width: 100px;
-  padding: 4px 8px;
+.add-btn {
+  padding: 8px 16px;
+  font-weight: 500;
+}
+
+.delete-btn, .back-btn {
+  padding: 6px 12px;
+}
+
+.back-btn {
+  margin-bottom: 16px;
   border: 1px solid #ccc;
+  background: white;
+  color: inherit;
+}
+
+.submit-btn, .submit-review-btn, .cancel-btn {
+  padding: 10px 20px;
+  font-size: 1rem;
+}
+
+.edit-price-btn, .save-price-btn, .cancel-price-btn, .edit-review-btn {
+  padding: 4px 12px;
   border-radius: 3px;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
 }
 
 .edit-price-btn {
   margin-left: 10px;
-  padding: 4px 12px;
-  background: black;
-  color: white;
-  border: none;
-  border-radius: 3px;
-  cursor: pointer;
-  font-size: 0.9rem;
 }
 
-.save-price-btn {
-  padding: 4px 12px;
-  background: black;
-  color: white;
-  border: none;
-  border-radius: 3px;
-  cursor: pointer;
-  font-size: 0.9rem;
-}
-
-.save-price-btn:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-}
-
-.cancel-price-btn {
-  padding: 4px 12px;
-  background: black;
-  color: white;
-  border: none;
-  border-radius: 3px;
-  cursor: pointer;
-  font-size: 0.9rem;
-}
-
-.prices-section ul {
-  list-style: none;
-  padding: 0;
-}
-
-.prices-section li {
-  padding: 8px 0;
-  border-bottom: 1px solid #eee;
-}
-
-.prices-section li:last-child {
-  border-bottom: none;
-}
-.review-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 8px;
-}
-
-.edit-review-btn {
-  padding: 4px 12px;
-  background: black;
-  color: white;
-  border: none;
-  border-radius: 3px;
-  cursor: pointer;
-  font-size: 0.9rem;
-}
-
-.review-edit-form {
-  padding: 12px;
-}
-
-.review-edit-form .form-group {
-  margin-bottom: 12px;
-}
-
-.review-edit-form label {
-  display: block;
-  margin-bottom: 6px;
-  font-weight: 500;
-}
-
-.review-edit-form .rating-slider {
-  width: 100%;
-  cursor: pointer;
-}
-
-.review-edit-form textarea {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-family: inherit;
-  font-size: 1rem;
-  resize: vertical;
-}
-
-.review-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.save-btn {
+.save-btn, .cancel-edit-btn {
   padding: 6px 16px;
-  background: black;
-  color: white;
-  border: none;
   border-radius: 3px;
-  cursor: pointer;
   font-size: 0.9rem;
 }
 
-.save-btn:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-}
-
-.cancel-edit-btn {
-  padding: 6px 16px;
-  background: black;
-  color: white;
-  border: none;
-  border-radius: 3px;
-  cursor: pointer;
-  font-size: 0.9rem;
-}
-
-.cancel-edit-btn:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-}
-
-.cancel-btn {
-  padding: 10px 20px;
-  background: black;
-  color: white;
-  border: none;
-  cursor: pointer;
-  font-size: 1rem;
-  border-radius: 4px;
+button:disabled {
+  background: #ccc !important;
+  cursor: not-allowed !important;
 }

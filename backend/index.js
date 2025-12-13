@@ -281,6 +281,7 @@ app.put('/api/reviews/:id', authenticateToken, async (req, res) => {
     
     res.json(rows[0])
   } 
+  // error
   catch (err) {
     console.error(err)
     res.json({ error: 'server error' })
@@ -360,6 +361,7 @@ app.post('/api/fragrances', authenticateToken, async (req, res) => {
     await client.query('COMMIT')
     res.json({ id: fragId, message: 'Fragrance added successfully' })
   } 
+  // error
   catch (err) {
     await client.query('ROLLBACK')
     console.error(err)
@@ -377,6 +379,7 @@ app.delete('/api/fragrances/:id', authenticateToken, async (req, res) => {
     await pool.query('DELETE FROM fragrances WHERE frag_id = $1', [id])
     res.json({ message: 'Fragrance deleted successfully' })
   } 
+  // error
   catch (err) {
     console.error(err)
     res.json({ error: 'Failed to delete fragrance' })
@@ -404,6 +407,7 @@ app.put('/api/prices/:id', authenticateToken, async (req, res) => {
     
     res.json(rows[0])
   } 
+  // error
   catch (err) {
     console.error(err)
     res.json({ error: 'Failed to update price' })
